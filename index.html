@@ -1,121 +1,115 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Now Playing</title>
+<meta charset="UTF-8" />
+<title>Now Playing Widget</title>
 <style>
-  :root{
-    --bg:#0f0f0f;
-    --card:#171717;
-    --text:#e6e6e6;
-    --muted:#9e9e9e;
-    --accent:#ffd166; /* gold */
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #121212;
+    color: #eee;
+    text-align: center;
+    padding: 10px;
   }
-  html,body{margin:0;padding:0;background:transparent;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; color:var(--text);}
-  #widget{max-width:280px;width:100%;min-width:160px;background:var(--card);border-radius:10px;padding:12px;box-sizing:border-box;box-shadow:0 6px 20px rgba(0,0,0,0.45);display:flex;gap:12px;align-items:center;}
-  .art{flex:0 0 92px;width:92px;height:92px;border-radius:6px;overflow:hidden;background:#0b0b0b;display:flex;align-items:center;justify-content:center}
-  .art img{width:100%;height:100%;object-fit:cover;display:block}
-  .meta{flex:1;min-width:0} /* min-width:0 allows text-overflow inside flex */
-  .track{font-weight:700;color:var(--accent);font-size:15px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .artist{color:var(--muted);font-size:13px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .status{font-size:12px;color:#8a8a8a;margin-top:8px}
-  /* small screens: compress spacing */
-  @media (max-width:220px){
-    .art{width:72px;height:72px}
-    .track{font-size:13px}
+  #widget {
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 15px;
+    max-width: 260px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
   }
-  /* make sure widget plays nice in iframes with weird CSS */
-  *{box-sizing:border-box}
+  #album-cover {
+    width: 100px;
+    height: 100px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  }
+  #track a {
+    font-weight: 700;
+    color: #1db954;
+    text-decoration: none;
+    font-size: 16px;
+  }
+  #track a:hover {
+    text-decoration: underline;
+  }
+  #artist {
+    font-style: italic;
+    margin-top: 4px;
+    color: #bbb;
+    font-size: 14px;
+  }
+  #date a {
+    font-size: 12px;
+    color: #888;
+    text-decoration: none;
+  }
+  #date a:hover {
+    text-decoration: underline;
+  }
 </style>
 </head>
 <body>
-  <div id="widget" role="region" aria-label="Now Playing">
-    <div class="art" id="albumArt" aria-hidden="true">
-      <!-- album or placeholder injected here -->
-      <svg id="placeholderSvg" viewBox="0 0 24 24" width="48" height="48" style="fill:#6b6b6b;">
-        <path d="M12 3v10.55A4 4 0 1014 17V7h4V3z"/>
-      </svg>
-    </div>
-    <div class="meta">
-      <div class="track" id="track">Loading…</div>
-      <div class="artist" id="artist"></div>
-      <div class="status" id="status"></div>
-    </div>
+  <div id="widget">
+    <img id="album-cover" src="" alt="Album Cover" />
+    <div id="track"></div>
+    <div id="artist"></div>
+    <div id="date"></div>
   </div>
 
 <script>
-/* ====== CONFIG - already set for you ====== */
-const API_KEY = "c1001da2eaa82b0b4cec1ff6b1f4f678";
-const USER = "BreMont283";
-/* ========================================= */
+// Your existing JavaScript code here, with minor tweaks if needed
+const LASTFM_API_KEY = "d74f9fdb9c79a50ffac2ca0700892ca1";
+const username = "BreMont283";
+const url = "https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&format=json&api_key=" 
+            + LASTFM_API_KEY + "&limit=1&user=" + username;
 
-const endpoint = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${encodeURIComponent(USER)}&api_key=${API_KEY}&format=json&limit=1`;
+function httpGet(url) {
+  var xmlHttp = new XMLHttpRequest();
+  xmlHttp.open("GET", url, false);
+  xmlHttp.send(null);
+  return xmlHttp.responseText;
+}
 
-function getBestImage(track){
-  if(!track || !track.image) return '';
-  // images often come as array of sizes - pick the last non-empty url
-  for(let i = track.image.length - 1; i >= 0; i--){
-    const url = track.image[i]["#text"];
-    if(url) return url;
+function relativeTime(time, time_text) {
+  var time_now = Math.round(Date.now() / 1000);
+  var time_diff = time_now - time;
+  let SEC_IN_MIN = 60;
+  let SEC_IN_HOUR = SEC_IN_MIN * 60;
+  let SEC_IN_DAY = SEC_IN_HOUR * 24;
+
+  if (time_diff < SEC_IN_HOUR) {
+    let minutes = Math.round(time_diff / SEC_IN_MIN);
+    return minutes + " minute" + ((minutes != 1) ? "s" : "") + " ago";
   }
-  return '';
-}
-
-function setPlaceholder(){
-  const art = document.getElementById('albumArt');
-  art.innerHTML = `<svg viewBox="0 0 24 24" width="48" height="48" style="fill:#6b6b6b;"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3z"/></svg>`;
-}
-
-async function fetchNowPlaying(){
-  try{
-    const res = await fetch(endpoint);
-    if(!res.ok) throw new Error('Network response not ok: '+res.status);
-    const data = await res.json();
-
-    const tracks = data && data.recenttracks && data.recenttracks.track;
-    if(!tracks || tracks.length === 0){
-      document.getElementById('track').textContent = 'No recent tracks';
-      document.getElementById('artist').textContent = '';
-      document.getElementById('status').textContent = '';
-      setPlaceholder();
-      return;
-    }
-
-    const track = tracks[0];
-    const now = Boolean(track['@attr'] && track['@attr'].nowplaying);
-    const name = track.name || 'Unknown title';
-    const artist = (track.artist && track.artist['#text']) || 'Unknown artist';
-    const album = (track.album && track.album['#text']) || '';
-    const image = getBestImage(track);
-
-    // write text
-    document.getElementById('track').textContent = name;
-    document.getElementById('artist').textContent = album ? `${artist} — ${album}` : artist;
-    document.getElementById('status').textContent = now ? 'Now playing' : 'Last played';
-
-    // album art (with fallback)
-    const art = document.getElementById('albumArt');
-    if(image){
-      // create image element and use onerror to fallback
-      art.innerHTML = `<img src="${image}" alt="album art" onerror="this.style.display='none'; setTimeout(()=>{setPlaceholder();},50)">`;
-    } else {
-      setPlaceholder();
-    }
-  } catch(err){
-    console.error('NowPlaying error', err);
-    document.getElementById('track').textContent = 'Failed to load';
-    document.getElementById('artist').textContent = '';
-    document.getElementById('status').textContent = '';
-    setPlaceholder();
+  if (time_diff >= SEC_IN_HOUR && time_diff < SEC_IN_DAY) {
+    let hours = Math.round(time_diff / SEC_IN_HOUR);
+    return hours + " hour" + ((hours != 1) ? "s" : "") + " ago";
   }
+  if (time_diff >= SEC_IN_DAY) return time_text;
 }
 
-/* expose placeholder for image onerror */
-window.setPlaceholder = setPlaceholder;
+var json = JSON.parse(httpGet(url));
+var last_track = json.recenttracks.track[0];
+var track = last_track.name;
+var trackLink = last_track.url;
+var artist = last_track.artist['#text'];
+let relative_time = null;
 
-fetchNowPlaying();
-setInterval(fetchNowPlaying, 15000); // refresh every 15s
+if (last_track.date) {
+  var unix_date = last_track.date.uts;
+  var date_text = last_track.date["#text"];
+  relative_time = relativeTime(unix_date, date_text);
+}
+
+var imageLink = last_track.image[2]["#text"];
+
+document.getElementById("track").innerHTML = `<a href="${trackLink}" target="_blank">${track}</a>`;
+document.getElementById("artist").textContent = artist;
+document.getElementById("date").innerHTML = `<a href="https://www.last.fm/user/${username}" target="_blank">${relative_time || "now playing..."}</a>`;
+document.getElementById("album-cover").src = imageLink;
 </script>
 </body>
 </html>
