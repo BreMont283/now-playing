@@ -1,82 +1,118 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>Now Playing</title>
 <style>
   body {
     font-family: Arial, sans-serif;
-    font-size: 14px;
+    font-size: 16px;
     color: #fff;
     background-color: #121212;
     margin: 0;
-    padding: 10px;
+    padding: 20px;
     text-align: center;
   }
-  img {
-    border-radius: 4px;
-    margin-bottom: 8px;
+  #now-playing-label {
+    font-weight: bold;
+    font-size: 24px;
+    margin-bottom: 12px;
+    letter-spacing: 2px;
   }
-  a {
+  #album-cover {
+    border-radius: 6px;
+    margin-bottom: 12px;
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+  }
+  #track {
+    font-size: 20px;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 6px;
+  }
+  #track a {
     color: #1db954;
     text-decoration: none;
+  }
+  #track a:hover {
+    text-decoration: underline;
+  }
+  #artist {
+    font-size: 16px;
+    color: #ccc;
+    margin-bottom: 8px;
+  }
+  #date a {
+    font-size: 14px;
+    color: #888;
+    text-decoration: none;
+  }
+  #date a:hover {
+    text-decoration: underline;
   }
 </style>
 </head>
 <body>
-  <img id="album-cover" src="" width="64" height="64"><br>
-  <span id="track"></span> — <span id="artist"></span><br>
+  <div id="now-playing-label">NOW PLAYING</div>
+  <img id="album-cover" src="" alt="Album cover" />
+  <span id="track"></span>
+  <span id="artist"></span><br />
   <small id="date"></small>
 
 <script>
-// get your own last.fm api key from https://www.last.fm/api/account/create
-const LASTFM_API_KEY = "d74f9fdb9c79a50ffac2ca0700892ca1"
-const username = "BreMont283"
-const url = "https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&format=json&api_key=" + LASTFM_API_KEY + "&limit=1&user=" + username
+const LASTFM_API_KEY = "d74f9fdb9c79a50ffac2ca0700892ca1";
+const username = "BreMont283";
+const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&format=json&api_key=${LASTFM_API_KEY}&limit=1&user=${username}`;
 
 function httpGet(url) {
-    var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open("GET", url, false);
-    xmlHttp.send(null);
-    return xmlHttp.responseText;
+  var xmlHttp = new XMLHttpRequest();
+  xmlHttp.open("GET", url, false);
+  xmlHttp.send(null);
+  return xmlHttp.responseText;
 }
 
 function relativeTime(time, time_text) {
-    var time_now = Math.round(Date.now() / 1000)
-    var time_diff = time_now - time
-    let SEC_IN_MIN = 60
-    let SEC_IN_HOUR = SEC_IN_MIN * 60
-    let SEC_IN_DAY = SEC_IN_HOUR * 24
+  var time_now = Math.round(Date.now() / 1000);
+  var time_diff = time_now - time;
+  let SEC_IN_MIN = 60;
+  let SEC_IN_HOUR = SEC_IN_MIN * 60;
+  let SEC_IN_DAY = SEC_IN_HOUR * 24;
 
-    if (time_diff < SEC_IN_HOUR) {
-        let minutes = Math.round(time_diff / SEC_IN_MIN)
-        return minutes + " minute" + ((minutes != 1) ? "s" : "") + " ago"
-    }
-    if (time_diff >= SEC_IN_HOUR && time_diff < SEC_IN_DAY) {
-        let hours = Math.round(time_diff / SEC_IN_HOUR)
-        return hours + " hour" + ((hours != 1) ? "s" : "") + " ago"
-    }
-    if (time_diff >= SEC_IN_DAY)
-        return time_text
+  if (time_diff < SEC_IN_HOUR) {
+    let minutes = Math.round(time_diff / SEC_IN_MIN);
+    return minutes + " minute" + (minutes != 1 ? "s" : "") + " ago";
+  }
+  if (time_diff >= SEC_IN_HOUR && time_diff < SEC_IN_DAY) {
+    let hours = Math.round(time_diff / SEC_IN_HOUR);
+    return hours + " hour" + (hours != 1 ? "s" : "") + " ago";
+  }
+  if (time_diff >= SEC_IN_DAY) return time_text;
 }
 
-var json = JSON.parse(httpGet(url));
-var last_track = json.recenttracks.track[0]
-var track = last_track.name
-var trackLink = last_track.url
-var artist = last_track.artist['#text']
-let relative_time = null
-if (last_track.date) {
-    var unix_date = last_track.date.uts
-    var date_text = last_track.date["#text"]
-    relative_time = relativeTime(unix_date, date_text)
-}
-var imageLink = last_track.image[2]["#text"]
+try {
+  var json = JSON.parse(httpGet(url));
+  var last_track = json.recenttracks.track[0];
+  var track = last_track.name;
+  var trackLink = last_track.url;
+  var artist = last_track.artist["#text"];
+  var relative_time = null;
+  if (last_track.date) {
+    var unix_date = last_track.date.uts;
+    var date_text = last_track.date["#text"];
+    relative_time = relativeTime(unix_date, date_text);
+  }
+  var imageLink = last_track.image[2]["#text"];
 
-document.getElementById("track").innerHTML = `<a href="${trackLink}" target="_blank">${track}</a>`
-document.getElementById("artist").textContent = artist
-document.getElementById("date").innerHTML = `<a href="https://www.last.fm/user/${username}" target="_blank">${relative_time || "now playing..."}</a>`
-document.getElementById("album-cover").src = imageLink
+  document.getElementById("track").innerHTML = `<a href="${trackLink}" target="_blank" rel="noopener noreferrer">${track}</a>`;
+  document.getElementById("artist").textContent = artist;
+  document.getElementById("date").innerHTML = `<a href="https://www.last.fm/user/${username}" target="_blank" rel="noopener noreferrer">${relative_time || "now playing..."}</a>`;
+  document.getElementById("album-cover").src = imageLink;
+} catch (error) {
+  document.getElementById("track").textContent = "Unable to load track info.";
+  console.error(error);
+}
 </script>
 </body>
 </html>
