@@ -1,23 +1,81 @@
-#track a {
-    font-weight: 700;
-    color: #4DD0E1; /* Soft teal */
-    text-decoration: none;
-    font-size: 16px;
-}
-#track a:hover {
-    text-decoration: underline;
-}
-#artist {
-    font-style: italic;
-    margin-top: 4px;
-    color: #E0E0E0; /* Light gray */
-    font-size: 14px;
-}
-#date a {
-    font-size: 12px;
-    color: #888888; /* Muted gray */
-    text-decoration: none;
-}
-#date a:hover {
-    text-decoration: underline;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Now Playing</title>
+  <style>
+    body {
+      background-color: #000; /* black background */
+      color: #e0e0e0; /* light gray text */
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #now-playing {
+      background: #111; /* dark gray box */
+      border-radius: 10px;
+      padding: 15px;
+      display: inline-block;
+      box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.1);
+    }
+
+    #track {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #ff6f61; /* coral/pink for track name */
+    }
+
+    #artist {
+      font-size: 1em;
+      color: #a0a0a0; /* muted gray for artist */
+    }
+
+    img {
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎵 Now Playing</h1>
+  <div id="now-playing">
+    <div id="track">Loading...</div>
+    <div id="artist"></div>
+    <img id="album-art" src="" alt="Album Art" style="display:none;">
+  </div>
+
+  <script>
+    const username = "BreMont283";
+    const apiKey = "YOUR_LASTFM_API_KEY"; // Replace with your key
+    const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${apiKey}&format=json&limit=1`;
+
+    async function fetchNowPlaying() {
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const track = data.recenttracks.track[0];
+        
+        document.getElementById("track").textContent = track.name;
+        document.getElementById("artist").textContent = track.artist["#text"];
+
+        if (track.image && track.image.length > 0) {
+          const imgUrl = track.image[track.image.length - 1]["#text"];
+          if (imgUrl) {
+            const img = document.getElementById("album-art");
+            img.src = imgUrl;
+            img.style.display = "block";
+          }
+        }
+      } catch (err) {
+        document.getElementById("track").textContent = "Error loading track";
+        console.error(err);
+      }
+    }
+
+    fetchNowPlaying();
+    setInterval(fetchNowPlaying, 15000); // refresh every 15s
+  </script>
+</body>
+</html>
