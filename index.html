@@ -1,45 +1,86 @@
+<div id="now-playing" style="
+  width: 140px;
+  background-color: #121212;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  overflow: hidden;
+">
+  <img id="album-cover" src="" alt="Album cover" style="
+    width: 120px;
+    height: 120px;
+    border-radius: 6px;
+    object-fit: cover;
+    display: block;
+    margin: 0 auto 6px;
+  ">
+  <span id="track" style="
+    font-size: 14px;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 4px;
+    word-wrap: break-word;
+  "></span>
+  <span id="artist" style="
+    font-size: 12px;
+    color: #ccc;
+    display: block;
+    margin-bottom: 2px;
+  "></span>
+  <span id="time" style="
+    font-size: 11px;
+    color: #888;
+    display: block;
+  "></span>
+</div>
+
 <script>
 const LASTFM_API_KEY = "d74f9fdb9c79a50ffac2ca0700892ca1";
 const username = "BreMont283";
-const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&format=json&api_key=${LASTFM_API_KEY}&limit=1&user=${username}`;
+const apiUrl = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&format=json&api_key=${LASTFM_API_KEY}&limit=1&user=${username}`;
+const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
 
 function relativeTime(time, time_text) {
   const time_now = Math.round(Date.now() / 1000);
   const time_diff = time_now - time;
   const SEC_IN_MIN = 60;
-  const SEC_IN_HOUR = SEC_IN_MIN * 60;
-  const SEC_IN_DAY = SEC_IN_HOUR * 24;
+  const SEC_IN_HOUR = 3600;
+  const SEC_IN_DAY = 86400;
 
   if (time_diff < SEC_IN_HOUR) {
     const minutes = Math.round(time_diff / SEC_IN_MIN);
-    return minutes + " minute" + (minutes != 1 ? "s" : "") + " ago";
+    return minutes + " minute" + (minutes !== 1 ? "s" : "") + " ago";
   }
-  if (time_diff >= SEC_IN_HOUR && time_diff < SEC_IN_DAY) {
+  if (time_diff < SEC_IN_DAY) {
     const hours = Math.round(time_diff / SEC_IN_HOUR);
-    return hours + " hour" + (hours != 1 ? "s" : "") + " ago";
+    return hours + " hour" + (hours !== 1 ? "s" : "") + " ago";
   }
-  if (time_diff >= SEC_IN_DAY) return time_text;
-  return "now playing...";
+  return time_text || "now playing...";
 }
 
 async function loadTrack() {
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Network response was not ok");
-    const json = await response.json();
+    const response = await fetch(proxy);
+    const data = await response.json();
+    const json = JSON.parse(data.contents);
     const last_track = json.recenttracks.track[0];
+
     const track = last_track.name;
     const trackLink = last_track.url;
     const artist = last_track.artist["#text"];
     let relative_time = "now playing...";
+
     if (last_track.date) {
       const unix_date = last_track.date.uts;
       const date_text = last_track.date["#text"];
       relative_time = relativeTime(unix_date, date_text);
     }
+
     const imageLink = last_track.image[2]["#text"] || "";
 
-    document.getElementById("track").innerHTML = `<a href="${trackLink}" target="_blank" rel="noopener noreferrer">${track}</a>`;
+    document.getElementById("track").innerHTML = `<a href="${trackLink}" target="_blank" rel="noopener noreferrer" style="color:#1db954;text-decoration:none;">${track}</a>`;
     document.getElementById("artist").textContent = artist;
     document.getElementById("time").textContent = relative_time;
     document.getElementById("album-cover").src = imageLink;
@@ -50,5 +91,9 @@ async function loadTrack() {
   }
 }
 
+// Initial load
 loadTrack();
+
+// Refresh every 30 seconds
+setInterval(loadTrack, 30000);
 </script>
