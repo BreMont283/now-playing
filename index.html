@@ -11,48 +11,43 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   box-sizing: border-box;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
 ">
   <img id="album-cover" src="" alt="Album cover" style="
     width: 90px;
     height: 90px;
     border-radius: 6px;
     object-fit: cover;
-    margin-top: 2px;
-    flex-shrink: 0;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    margin-bottom: 4px;
   ">
-  <div style="width:100%;">
-    <span id="track" style="
-      font-size: 12px;
-      font-weight: 600;
-      display: -webkit-box;
-      -webkit-line-clamp: 1;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      width: 100%;
-      margin-bottom: 2px;
-    "></span>
-    <span id="artist" style="
-      font-size: 11px;
-      color: #ccc;
-      display: -webkit-box;
-      -webkit-line-clamp: 1;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      width: 100%;
-      margin-bottom: 2px;
-    "></span>
-    <span id="time" style="
-      font-size: 10px;
-      color: #888;
-      display: block;
-    "></span>
-  </div>
+  <span id="track" style="
+    font-size: 12px;
+    font-weight: 600;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    margin-bottom: 2px;
+  "></span>
+  <span id="artist" style="
+    font-size: 11px;
+    color: #ccc;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    margin-bottom: 2px;
+  "></span>
+  <span id="time" style="
+    font-size: 10px;
+    color: #888;
+    display: block;
+  "></span>
 </div>
 
 <script>
@@ -64,18 +59,8 @@ const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`
 function relativeTime(time, time_text) {
   const time_now = Math.round(Date.now() / 1000);
   const time_diff = time_now - time;
-  const SEC_IN_MIN = 60;
-  const SEC_IN_HOUR = 3600;
-  const SEC_IN_DAY = 86400;
-
-  if (time_diff < SEC_IN_HOUR) {
-    const minutes = Math.round(time_diff / SEC_IN_MIN);
-    return minutes + " minute" + (minutes !== 1 ? "s" : "") + " ago";
-  }
-  if (time_diff < SEC_IN_DAY) {
-    const hours = Math.round(time_diff / SEC_IN_HOUR);
-    return hours + " hour" + (hours !== 1 ? "s" : "") + " ago";
-  }
+  if(time_diff < 3600) return Math.round(time_diff/60) + " min ago";
+  if(time_diff < 86400) return Math.round(time_diff/3600) + " hr ago";
   return time_text || "now playing...";
 }
 
@@ -90,27 +75,21 @@ async function loadTrack() {
     const trackLink = last_track.url;
     const artist = last_track.artist["#text"];
     let relative_time = "now playing...";
-
-    if (last_track.date) {
-      const unix_date = last_track.date.uts;
-      const date_text = last_track.date["#text"];
-      relative_time = relativeTime(unix_date, date_text);
+    if(last_track.date){
+      relative_time = relativeTime(last_track.date.uts, last_track.date["#text"]);
     }
-
     const imageLink = last_track.image[2]["#text"] || "";
 
     document.getElementById("track").innerHTML = `<a href="${trackLink}" target="_blank" rel="noopener noreferrer" style="color:#1db954;text-decoration:none;">${track}</a>`;
     document.getElementById("artist").textContent = artist;
     document.getElementById("time").textContent = relative_time;
     document.getElementById("album-cover").src = imageLink;
-
-  } catch (error) {
+  } catch (e) {
     document.getElementById("track").textContent = "Unable to load track info.";
-    console.error(error);
+    console.error(e);
   }
 }
 
-// Initial load
 loadTrack();
 setInterval(loadTrack, 30000);
 </script>
