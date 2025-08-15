@@ -1,125 +1,111 @@
-<!-- Responsive Container for Sidebar -->
-<div style="max-width: 140px; margin: 0 auto;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Now Playing</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    color: #fff;
+    background-color: #121212;
+    margin: 0;
+    padding: 20px;
+    text-align: center;
+  }
+  #album-cover {
+    border-radius: 6px;
+    margin-bottom: 12px;
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+  }
+  #track {
+    font-size: 20px;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 6px;
+  }
+  #track a {
+    color: #1db954;
+    text-decoration: none;
+  }
+  #track a:hover {
+    text-decoration: underline;
+  }
+  #artist {
+    font-size: 16px;
+    color: #ccc;
+    margin-bottom: 8px;
+  }
+  #date a {
+    font-size: 14px;
+    color: #888;
+    text-decoration: none;
+  }
+  #date a:hover {
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+  <img id="album-cover" src="" alt="Album cover" />
+  <span id="track"></span>
+  <span id="artist"></span><br />
+  <small id="date"></small>
 
-  <style>
-    #now-playing-widget {
-      width: 100%;
-      max-width: 140px;
-      aspect-ratio: 1 / 1;
-      background-color: #121212;
-      border-radius: 8px;
-      overflow: hidden;
-      position: relative;
-      font-family: Arial, sans-serif;
-      box-sizing: border-box;
-      margin: 0 auto;
-    }
+<script>
+const LASTFM_API_KEY = "d74f9fdb9c79a50ffac2ca0700892ca1";
+const username = "BreMont283";
+const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&format=json&api_key=${LASTFM_API_KEY}&limit=1&user=${username}`;
 
-    #np-album-cover {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
+function httpGet(url) {
+  var xmlHttp = new XMLHttpRequest();
+  xmlHttp.open("GET", url, false);
+  xmlHttp.send(null);
+  return xmlHttp.responseText;
+}
 
-    #np-info-overlay {
-      position: absolute;
-      bottom: 0;
-      width: 100%;
-      background: rgba(18, 18, 18, 0.75);
-      backdrop-filter: blur(2px);
-      color: #fff;
-      padding: 2px 5px;
-      box-sizing: border-box;
-      line-height: 1.2;
-    }
+function relativeTime(time, time_text) {
+  var time_now = Math.round(Date.now() / 1000);
+  var time_diff = time_now - time;
+  let SEC_IN_MIN = 60;
+  let SEC_IN_HOUR = SEC_IN_MIN * 60;
+  let SEC_IN_DAY = SEC_IN_HOUR * 24;
 
-    .np-text {
-      display: block;
-      white-space: normal;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      word-wrap: break-word;
-    }
+  if (time_diff < SEC_IN_HOUR) {
+    let minutes = Math.round(time_diff / SEC_IN_MIN);
+    return minutes + " minute" + (minutes != 1 ? "s" : "") + " ago";
+  }
+  if (time_diff >= SEC_IN_HOUR && time_diff < SEC_IN_DAY) {
+    let hours = Math.round(time_diff / SEC_IN_HOUR);
+    return hours + " hour" + (hours != 1 ? "s" : "") + " ago";
+  }
+  if (time_diff >= SEC_IN_DAY) return time_text;
+}
 
-    #np-track {
-      font-size: 11px;
-      font-weight: 600;
-    }
+try {
+  var json = JSON.parse(httpGet(url));
+  var last_track = json.recenttracks.track[0];
+  var track = last_track.name;
+  var trackLink = last_track.url;
+  var artist = last_track.artist["#text"];
+  var relative_time = null;
+  if (last_track.date) {
+    var unix_date = last_track.date.uts;
+    var date_text = last_track.date["#text"];
+    relative_time = relativeTime(unix_date, date_text);
+  }
+  var imageLink = last_track.image[2]["#text"];
 
-    #np-track a {
-      color: #1db954;
-      text-decoration: none;
-    }
-
-    #np-artist {
-      font-size: 10px;
-      color: #ccc;
-    }
-
-    #np-time {
-      font-size: 9px;
-      color: #999;
-      text-align: right;
-    }
-  </style>
-
-  <div id="now-playing-widget">
-    <img id="np-album-cover" src="" alt="Album cover">
-    <div id="np-info-overlay">
-      <span id="np-track" class="np-text"></span>
-      <span id="np-artist" class="np-text"></span>
-      <span id="np-time" class="np-text"></span>
-    </div>
-  </div>
-
-  <script>
-    (function () {
-      const LASTFM_API_KEY = "d74f9fdb9c79a50ffac2ca0700892ca1";
-      const username = "BreMont283";
-      const apiUrl = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&format=json&api_key=${LASTFM_API_KEY}&limit=1&user=${username}`;
-      const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
-
-      function relativeTime(time, time_text) {
-        const time_now = Math.round(Date.now() / 1000);
-        const time_diff = time_now - time;
-        if (time_diff < 3600) return Math.round(time_diff / 60) + " min ago";
-        if (time_diff < 86400) return Math.round(time_diff / 3600) + " hr ago";
-        return time_text || "now playing...";
-      }
-
-      async function loadTrack() {
-        try {
-          const response = await fetch(proxy);
-          const data = await response.json();
-          const json = JSON.parse(data.contents);
-          const last_track = json.recenttracks.track[0];
-
-          const track = last_track.name;
-          const trackLink = last_track.url;
-          const artist = last_track.artist["#text"];
-          let relative_time = "now playing...";
-          if (last_track["@attr"] && last_track["@attr"].nowplaying) {
-            relative_time = "now playing...";
-          } else if (last_track.date) {
-            relative_time = relativeTime(last_track.date.uts, last_track.date["#text"]);
-          }
-
-          const imageLink = last_track.image[2]["#text"] || "";
-
-          document.getElementById("np-track").innerHTML = `<a href="${trackLink}" target="_blank" rel="noopener noreferrer">${track}</a>`;
-          document.getElementById("np-artist").textContent = artist;
-          document.getElementById("np-time").textContent = relative_time;
-          document.getElementById("np-album-cover").src = imageLink;
-        } catch (e) {
-          document.getElementById("np-track").textContent = "Unable to load track.";
-          console.error("Last.fm Widget Error:", e);
-        }
-      }
-
-      loadTrack();
-      setInterval(loadTrack, 30000);
-    })();
-  </script>
-
-</div>
+  document.getElementById("track").innerHTML = `<a href="${trackLink}" target="_blank" rel="noopener noreferrer">${track}</a>`;
+  document.getElementById("artist").textContent = artist;
+  document.getElementById("date").innerHTML = `<a href="https://www.last.fm/user/${username}" target="_blank" rel="noopener noreferrer">${relative_time || "now playing..."}</a>`;
+  document.getElementById("album-cover").src = imageLink;
+} catch (error) {
+  document.getElementById("track").textContent = "Unable to load track info.";
+  console.error(error);
+}
+</script>
+</body>
+</html>
