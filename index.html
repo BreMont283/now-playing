@@ -1,94 +1,115 @@
-<div id="now-playing" style="
-  width: 140px;
-  height: 140px;
-  background-color: #121212;
-  border-radius: 8px;
-  overflow: hidden;
-  position: relative;
-  font-family: Arial, sans-serif;
-  box-sizing: border-box;
-">
-  <img id="album-cover" src="" alt="Album cover" style="
+<style>
+  #now-playing-widget {
+    /* --- This is the fix --- */
+    width: 100%;         /* Fill the container's width */
+    max-width: 140px;    /* Optional: Set a max size */
+    aspect-ratio: 1 / 1; /* Keep it square */
+    /* ---------------------- */
+    background-color: #121212;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    font-family: Arial, sans-serif;
+    box-sizing: border-box;
+    margin: auto; /* Centers the widget if the container is wider */
+  }
+  #np-album-cover {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
-  ">
-  <div style="
+  }
+  #np-info-overlay {
     position: absolute;
     bottom: 0;
     width: 100%;
-    background: rgba(18,18,18,0.75);
+    background: rgba(18, 18, 18, 0.75);
+    backdrop-filter: blur(2px); /* Adds a nice frosted glass effect */
     color: #fff;
-    padding: 1px 3px;
+    padding: 2px 5px;
     box-sizing: border-box;
-    line-height: 1.1;
-  ">
-    <span id="track" style="
-      font-size: 12px;
-      font-weight: 600;
-      display: block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    "></span>
-    <span id="artist" style="
-      font-size: 11px;
-      color: #ccc;
-      display: block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    "></span>
-    <span id="time" style="
-      font-size: 10px;
-      color: #888;
-      display: block;
-      text-align: right;
-    "></span>
+    line-height: 1.2;
+  }
+  .np-text {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #np-track {
+    font-size: 12px;
+    font-weight: 600;
+  }
+  /* Style for the track link */
+  #np-track a {
+    color: #1db954; /* Spotify green */
+    text-decoration: none;
+  }
+  #np-artist {
+    font-size: 11px;
+    color: #ccc;
+  }
+  #np-time {
+    font-size: 10px;
+    color: #999;
+    text-align: right;
+  }
+</style>
+
+<div id="now-playing-widget">
+  <img id="np-album-cover" src="" alt="Album cover">
+  <div id="np-info-overlay">
+    <span id="np-track" class="np-text"></span>
+    <span id="np-artist" class="np-text"></span>
+    <span id="np-time" class="np-text"></span>
   </div>
 </div>
 
 <script>
-const LASTFM_API_KEY = "d74f9fdb9c79a50ffac2ca0700892ca1";
-const username = "BreMont283";
-const apiUrl = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&format=json&api_key=${LASTFM_API_KEY}&limit=1&user=${username}`;
-const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
+(function() {
+  const LASTFM_API_KEY = "d74f9fdb9c79a50ffac2ca0700892ca1";
+  const username = "BreMont283";
+  const apiUrl = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&format=json&api_key=${LASTFM_API_KEY}&limit=1&user=${username}`;
+  const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
 
-function relativeTime(time, time_text) {
-  const time_now = Math.round(Date.now() / 1000);
-  const time_diff = time_now - time;
-  if(time_diff < 3600) return Math.round(time_diff/60) + " min ago";
-  if(time_diff < 86400) return Math.round(time_diff/3600) + " hr ago";
-  return time_text || "now playing...";
-}
-
-async function loadTrack() {
-  try {
-    const response = await fetch(proxy);
-    const data = await response.json();
-    const json = JSON.parse(data.contents);
-    const last_track = json.recenttracks.track[0];
-
-    const track = last_track.name;
-    const trackLink = last_track.url;
-    const artist = last_track.artist["#text"];
-    let relative_time = "now playing...";
-    if(last_track.date){
-      relative_time = relativeTime(last_track.date.uts, last_track.date["#text"]);
-    }
-    const imageLink = last_track.image[2]["#text"] || "";
-
-    document.getElementById("track").innerHTML = `<a href="${trackLink}" target="_blank" rel="noopener noreferrer" style="color:#1db954;text-decoration:none;">${track}</a>`;
-    document.getElementById("artist").textContent = artist;
-    document.getElementById("time").textContent = relative_time;
-    document.getElementById("album-cover").src = imageLink;
-  } catch (e) {
-    document.getElementById("track").textContent = "Unable to load track info.";
-    console.error(e);
+  function relativeTime(time, time_text) {
+    const time_now = Math.round(Date.now() / 1000);
+    const time_diff = time_now - time;
+    if (time_diff < 3600) return Math.round(time_diff / 60) + " min ago";
+    if (time_diff < 86400) return Math.round(time_diff / 3600) + " hr ago";
+    return time_text || "now playing...";
   }
-}
 
-loadTrack();
-setInterval(loadTrack, 30000);
+  async function loadTrack() {
+    try {
+      const response = await fetch(proxy);
+      const data = await response.json();
+      const json = JSON.parse(data.contents);
+      const last_track = json.recenttracks.track[0];
+
+      const track = last_track.name;
+      const trackLink = last_track.url;
+      const artist = last_track.artist["#text"];
+      let relative_time = "now playing...";
+      if (last_track["@attr"] && last_track["@attr"].nowplaying) {
+          relative_time = "now playing...";
+      } else if (last_track.date) {
+          relative_time = relativeTime(last_track.date.uts, last_track.date["#text"]);
+      }
+      
+      const imageLink = last_track.image[2]["#text"] || "";
+
+      document.getElementById("np-track").innerHTML = `<a href="${trackLink}" target="_blank" rel="noopener noreferrer">${track}</a>`;
+      document.getElementById("np-artist").textContent = artist;
+      document.getElementById("np-time").textContent = relative_time;
+      document.getElementById("np-album-cover").src = imageLink;
+    } catch (e) {
+      document.getElementById("np-track").textContent = "Unable to load track.";
+      console.error("Last.fm Widget Error:", e);
+    }
+  }
+
+  loadTrack();
+  setInterval(loadTrack, 30000);
+})();
 </script>
